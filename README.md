@@ -2,10 +2,7 @@
 
 A flexible, plugin-based notification system that lets you send alerts across multiple platforms from a single API. Built with Go for performance and reliability.
 
-[![Go Build and Release](https://github.com/Mohammad-Faiz-Cloud-Engineer/Dynamic-Notification-System/actions/workflows/go.yml/badge.svg)](https://github.com/Mohammad-Faiz-Cloud-Engineer/Dynamic-Notification-System/actions/workflows/go.yml)
-![License](https://img.shields.io/badge/license-MIT-blue.svg?style=flat-square)
-![Go Version](https://img.shields.io/badge/go-1.23-blue?logo=go&style=flat-square)
-![GitHub release](https://img.shields.io/github/v/release/Mohammad-Faiz-Cloud-Engineer/Dynamic-Notification-System?style=flat-square)
+[![Build and Test](https://github.com/Mohammad-Faiz-Cloud-Engineer/Dynamic-Notification-System/actions/workflows/build.yml/badge.svg)](https://github.com/Mohammad-Faiz-Cloud-Engineer/Dynamic-Notification-System/actions/workflows/build.yml) ![License](https://img.shields.io/badge/license-MIT-blue.svg?style=flat-square) ![Go Version](https://img.shields.io/badge/go-1.23-blue?logo=go&style=flat-square) ![GitHub release](https://img.shields.io/github/v/release/Mohammad-Faiz-Cloud-Engineer/Dynamic-Notification-System?style=flat-square)
 
 ## What is this?
 
