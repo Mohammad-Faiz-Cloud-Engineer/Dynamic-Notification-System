@@ -26,122 +26,65 @@ jobs:
       with:
         go-version: '1.23'
 
-    - name: Cache Go modules
-      uses: actions/cache@v3
-      with:
-        path: |
-          ~/.cache/go-build
-          ~/go/pkg/mod
-        key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
-        restore-keys: |
-          ${{ runner.os }}-go-
-
-    - name: Download dependencies
-      run: go mod download
-
-    - name: Build main application
+    - name: Build application
       run: |
         mkdir -p build
         go build -v -o build/notification-system main.go
 
-    - name: Build all plugins
+    - name: Build plugins
       run: |
         mkdir -p build/plugins
-        
-        for plugin_dir in plugins/*/; do
-          if [ -d "$plugin_dir" ]; then
-            plugin_name=$(basename "$plugin_dir")
-            plugin_file="${plugin_dir}${plugin_name}.go"
-            
-            if [ -f "$plugin_file" ]; then
-              echo "Building plugin: $plugin_name"
-              go build -buildmode=plugin -o "build/plugins/${plugin_name}.so" "$plugin_file"
-            fi
-          fi
-        done
+        go build -buildmode=plugin -o build/plugins/telegram.so plugins/telegram/telegram.go
+        go build -buildmode=plugin -o build/plugins/discord.so plugins/discord/discord.go
+        go build -buildmode=plugin -o build/plugins/slack.so plugins/slack/slack.go
+        go build -buildmode=plugin -o build/plugins/teams.so plugins/teams/teams.go
+        go build -buildmode=plugin -o build/plugins/webhook.so plugins/webhook/webhook.go
+        go build -buildmode=plugin -o build/plugins/smtp.so plugins/smtp/smtp.go
+        go build -buildmode=plugin -o build/plugins/push.so plugins/push/push.go
+        go build -buildmode=plugin -o build/plugins/sms.so plugins/sms/sms.go
+        go build -buildmode=plugin -o build/plugins/signal.so plugins/signal/signal.go
+        go build -buildmode=plugin -o build/plugins/rocketchat.so plugins/rocketchat/rocketchat.go
+        go build -buildmode=plugin -o build/plugins/ntfy.so plugins/ntfy/ntfy.go
 
-    - name: Generate version tag
+    - name: Generate version
       id: version
       run: |
-        # Fetch all tags
-        git fetch --tags --force
-        
-        # Get the latest tag
-        LATEST_TAG=$(git tag --sort=-v:refname | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | head -n 1)
-        
-        if [ -z "$LATEST_TAG" ]; then
-          NEW_TAG="v0.1.0"
+        git fetch --tags
+        LATEST=$(git tag --sort=-v:refname | head -n 1)
+        if [ -z "$LATEST" ]; then
+          echo "tag=v0.1.0" >> $GITHUB_OUTPUT
         else
-          # Parse version
-          VERSION=${LATEST_TAG#v}
-          MAJOR=$(echo $VERSION | cut -d. -f1)
-          MINOR=$(echo $VERSION | cut -d. -f2)
-          PATCH=$(echo $VERSION | cut -d. -f3)
-          
-          # Check commit message for version bump type
-          COMMIT_MSG=$(git log -1 --pretty=%B)
-          
-          if echo "$COMMIT_MSG" | grep -qi "BREAKING CHANGE"; then
-            MAJOR=$((MAJOR + 1))
-            MINOR=0
-            PATCH=0
-          elif echo "$COMMIT_MSG" | grep -qi "^feat"; then
-            MINOR=$((MINOR + 1))
-            PATCH=0
-          else
-            PATCH=$((PATCH + 1))
-          fi
-          
-          NEW_TAG="v${MAJOR}.${MINOR}.${PATCH}"
+          echo "tag=$LATEST" >> $GITHUB_OUTPUT
         fi
-        
-        echo "new_tag=$NEW_TAG" >> $GITHUB_OUTPUT
-        echo "Generated version: $NEW_TAG"
 
     - name: Check if tag exists
-      id: check_tag
+      id: check
       run: |
-        if git rev-parse "${{ steps.version.outputs.new_tag }}" >/dev/null 2>&1; then
+        if git rev-parse "${{ steps.version.outputs.tag }}" >/dev/null 2>&1; then
           echo "exists=true" >> $GITHUB_OUTPUT
-          echo "Tag already exists: ${{ steps.version.outputs.new_tag }}"
         else
           echo "exists=false" >> $GITHUB_OUTPUT
-          echo "Tag does not exist: ${{ steps.version.outputs.new_tag }}"
         fi
 
-    - name: Create and push tag
-      if: steps.check_tag.outputs.exists == 'false'
+    - name: Create release archive
+      if: steps.check.outputs.exists == 'false'
+      run: |
+        cd build
+        zip -r ../release.zip .
+
+    - name: Create tag
+      if: steps.check.outputs.exists == 'false'
       run: |
         git config user.name "github-actions[bot]"
         git config user.email "github-actions[bot]@users.noreply.github.com"
-        git tag -a "${{ steps.version.outputs.new_tag }}" -m "Release ${{ steps.version.outputs.new_tag }}"
-        git push origin "${{ steps.version.outputs.new_tag }}"
+        git tag "${{ steps.version.outputs.tag }}"
+        git push origin "${{ steps.version.outputs.tag }}"
 
-    - name: Create release archive
-      if: steps.check_tag.outputs.exists == 'false'
-      run: |
-        cd build
-        zip -r ../dynamic-notification-system-${{ steps.version.outputs.new_tag }}.zip .
-        cd ..
-
-    - name: Create GitHub Release
-      if: steps.check_tag.outputs.exists == 'false'
+    - name: Create release
+      if: steps.check.outputs.exists == 'false'
       uses: softprops/action-gh-release@v2
       with:
-        tag_name: ${{ steps.version.outputs.new_tag }}
-        name: Release ${{ steps.version.outputs.new_tag }}
-        draft: false
-        prerelease: false
-        generate_release_notes: true
-        files: |
-          dynamic-notification-system-${{ steps.version.outputs.new_tag }}.zip
+        tag_name: ${{ steps.version.outputs.tag }}
+        files: release.zip
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-    - name: Release created
-      if: steps.check_tag.outputs.exists == 'false'
-      run: echo "Release ${{ steps.version.outputs.new_tag }} created successfully"
-
-    - name: Release skipped
-      if: steps.check_tag.outputs.exists == 'true'
-      run: echo "Release skipped - tag ${{ steps.version.outputs.new_tag }} already exists"
