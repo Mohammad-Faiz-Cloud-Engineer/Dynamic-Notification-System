@@ -1,0 +1,49 @@
+# Docker build context exclusions
+docker-compose.yml
+LICENSE
+README.md
+CONTRIBUTING.md
+Dockerfile
+.dockerignore
+.git
+.gitignore
+
+# Build artifacts
+build/
+dist/
+target/
+
+# Documentation
+site/
+docs/
+*.md
+
+# Python virtual environment
+venv/
+__pycache__/
+*.pyc
+
+# Configuration files with secrets
+config.yaml
+.env
+.env.*
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs and temporary files
+*.log
+*.tmp
+*.cache
+
+# Test files
+*_test.go
+test/
+coverage/
